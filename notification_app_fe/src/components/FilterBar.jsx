@@ -12,7 +12,11 @@ const FilterBar = ({ value, onChange }) => {
       textColor="primary"
       indicatorColor="primary"
       aria-label="Notification filters"
-      sx={{ minHeight: 44 }}
+      sx={{
+        minHeight: 44,
+        '& .MuiTabs-flexContainer': { gap: 8 },
+        '& .MuiTab-root': { px: 2 },
+      }}
     >
       {FILTERS.map((filter) => (
         <Tab key={filter} value={filter} label={filter} sx={{ minHeight: 44 }} />

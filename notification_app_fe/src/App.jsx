@@ -112,42 +112,44 @@ function App() {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar position="sticky" color="inherit" elevation={1}>
-        <Toolbar>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Box
-              component="img"
-              src="/campus-logo.svg"
-              alt="Campus Connect logo"
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: 1.5,
-                border: '1px solid',
-                borderColor: 'divider',
-                bgcolor: 'common.white',
-                p: 0.5,
-              }}
-            />
-            <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Campus Connect
-            </Typography>
-          </Stack>
-          <Box sx={{ flexGrow: 1 }} />
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Chip
-              icon={<NotificationsActiveIcon />}
-              label="Live simulation"
-              color="primary"
-              variant="outlined"
-              size="small"
-            />
-            <Chip
-              label={user?.name || 'Campus User'}
-              color="secondary"
-              size="small"
-            />
-          </Stack>
-        </Toolbar>
+        <Container maxWidth="lg">
+          <Toolbar disableGutters sx={{ minHeight: 64, py: 1 }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Box
+                component="img"
+                src="/campus-logo.svg"
+                alt="Campus Connect logo"
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 1.5,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  bgcolor: 'common.white',
+                  p: 0.5,
+                }}
+              />
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                Campus Connect
+              </Typography>
+            </Stack>
+            <Box sx={{ flexGrow: 1 }} />
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Chip
+                icon={<NotificationsActiveIcon />}
+                label="Live simulation"
+                color="primary"
+                variant="outlined"
+                size="small"
+              />
+              <Chip
+                label={user?.name || 'Campus User'}
+                color="secondary"
+                size="small"
+              />
+            </Stack>
+          </Toolbar>
+        </Container>
         <Divider />
         <Container maxWidth="lg">
           <Tabs
@@ -266,7 +268,10 @@ function App() {
                   Filter by category to review all campus activity.
                 </Typography>
               </Box>
-              <Paper variant="outlined" sx={{ px: 1 }}>
+              <Paper
+                variant="outlined"
+                sx={{ px: 1.5, py: 0.5, borderRadius: 3, bgcolor: 'background.paper' }}
+              >
                 <FilterBar value={filter} onChange={handleFilterChange} />
               </Paper>
             </Stack>

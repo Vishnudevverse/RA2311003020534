@@ -25,12 +25,12 @@ const NotificationCard = ({ notification, onMarkRead }) => {
       variant="outlined"
       sx={{
         mb: 2,
-        borderLeftWidth: isUnread ? 4 : 1,
+        borderLeftWidth: 4,
         borderLeftStyle: 'solid',
         borderLeftColor: isUnread ? 'primary.main' : 'divider',
-        opacity: isUnread ? 1 : 0.7,
-        filter: isUnread ? 'none' : 'grayscale(0.2)',
+        bgcolor: isUnread ? 'background.paper' : 'background.default',
         boxShadow: isUnread ? 2 : 0,
+        transition: 'box-shadow 0.2s ease, border-color 0.2s ease',
       }}
     >
       <CardContent sx={{ pb: 1.5 }}>
