@@ -1,12 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   AppBar,
   Badge,
   Box,
+  Button,
   Chip,
   Container,
   Divider,
   Grid,
+  List,
+  ListItem,
+  ListItemText,
   Paper,
   Stack,
   Tab,
@@ -16,6 +23,7 @@ import {
 } from '@mui/material'
 import {
   Dashboard as DashboardIcon,
+  ExpandMore as ExpandMoreIcon,
   NotificationsActive as NotificationsActiveIcon,
   PriorityHigh as PriorityHighIcon,
 } from '@mui/icons-material'
@@ -23,7 +31,8 @@ import { Log, getLogs, clearLogs } from 'logging-middleware'
 import FilterBar from './components/FilterBar'
 import NotificationCard from './components/NotificationCard'
 import DeveloperConsole from './components/DeveloperConsole'
-import { getTopNotifications } from './utils/notificationUtils'
+import { formatTimestamp, getTopNotifications } from './utils/notificationUtils'
+import { groupNotificationsByProvider } from './utils/groupingLogic'
 import {
   getInitialNotifications,
   startNotificationSimulation,
@@ -31,13 +40,21 @@ import {
 import { useAuth } from './context/AuthContext.jsx'
 
 const TOP_COUNT = 5
+const TYPE_COLORS = {
+  Placement: 'error',
+  Result: 'info',
+  Event: 'primary',
+}
 
 function App() {
+  const initialNotifications = useMemo(() => getInitialNotifications(), [])
   const [view, setView] = useState('dashboard')
   const [filter, setFilter] = useState('All')
-  const [notifications, setNotifications] = useState(() =>
-    getInitialNotifications(),
-  )
+  const [notifications, setNotifications] = useState(initialNotifications)
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const initialGroups = groupNotificationsByProvider(initialNotifications)
+    return new Set(initialGroups.map((group) => group.provider))
+  })
   const [logs, setLogs] = useState([])
   const { user, token } = useAuth()
 
@@ -70,6 +87,21 @@ function App() {
     return notifications.filter((item) => item.type === filter)
   }, [notifications, filter])
 
+  const groupedNotifications = useMemo(
+    () => groupNotificationsByProvider(filteredNotifications),
+    [filteredNotifications],
+  )
+
+  const visibleGroupKeys = useMemo(
+    () => groupedNotifications.map((group) => group.provider),
+    [groupedNotifications],
+  )
+
+  const allVisibleExpanded = useMemo(() => {
+    if (!visibleGroupKeys.length) return false
+    return visibleGroupKeys.every((key) => expandedGroups.has(key))
+  }, [expandedGroups, visibleGroupKeys])
+
   const handleViewChange = (_event, nextView) => {
     if (nextView) {
       setView(nextView)
@@ -97,6 +129,56 @@ function App() {
       Log('frontend', 'info', 'user', `Marked as read: ${id}`)
       syncLogs()
     }
+  }
+
+  const handleToggleGroup = (provider, nextExpanded) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev)
+      if (nextExpanded) {
+        next.add(provider)
+      } else {
+        next.delete(provider)
+      }
+      return next
+    })
+
+    Log(
+      'frontend',
+      'info',
+      'user',
+      `${nextExpanded ? 'Expanded' : 'Collapsed'} group: ${provider}`,
+    )
+    syncLogs()
+  }
+
+  const handleToggleAllGroups = () => {
+    const nextExpanded = new Set(expandedGroups)
+
+    if (allVisibleExpanded) {
+      visibleGroupKeys.forEach((key) => nextExpanded.delete(key))
+      Log('frontend', 'info', 'user', 'Collapsed all groups')
+    } else {
+      visibleGroupKeys.forEach((key) => nextExpanded.add(key))
+      Log('frontend', 'info', 'user', 'Expanded all groups')
+    }
+
+    setExpandedGroups(nextExpanded)
+    syncLogs()
+  }
+
+  const handleMarkGroupRead = (provider) => {
+    setNotifications((prev) => {
+      let didUpdate = false
+      const next = prev.map((item) => {
+        if (item.provider !== provider || item.isRead) return item
+        didUpdate = true
+        return { ...item, isRead: true }
+      })
+      return didUpdate ? next : prev
+    })
+
+    Log('frontend', 'info', 'user', `Marked group as read: ${provider}`)
+    syncLogs()
   }
 
   const handleClearLogs = () => {
@@ -268,22 +350,172 @@ function App() {
                   Filter by category to review all campus activity.
                 </Typography>
               </Box>
-              <Paper
-                variant="outlined"
-                sx={{ px: 1.5, py: 0.5, borderRadius: 3, bgcolor: 'background.paper' }}
+              <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                spacing={1.5}
+                alignItems={{ xs: 'flex-start', md: 'center' }}
               >
-                <FilterBar value={filter} onChange={handleFilterChange} />
-              </Paper>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={handleToggleAllGroups}
+                  disabled={!groupedNotifications.length}
+                >
+                  {allVisibleExpanded ? 'Collapse All' : 'Expand All'}
+                </Button>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: 3,
+                    bgcolor: 'background.paper',
+                  }}
+                >
+                  <FilterBar value={filter} onChange={handleFilterChange} />
+                </Paper>
+              </Stack>
             </Stack>
 
-            {filteredNotifications.length ? (
-              filteredNotifications.map((notification) => (
-                <NotificationCard
-                  key={notification.id}
-                  notification={notification}
-                  onMarkRead={handleMarkRead}
-                />
-              ))
+            {groupedNotifications.length ? (
+              <Stack spacing={2}>
+                {groupedNotifications.map((group) => (
+                  <Accordion
+                    key={group.provider}
+                    expanded={expandedGroups.has(group.provider)}
+                    onChange={(_event, isExpanded) =>
+                      handleToggleGroup(group.provider, isExpanded)
+                    }
+                    disableGutters
+                    variant="outlined"
+                    sx={{
+                      borderRadius: 3,
+                      overflow: 'hidden',
+                      '&:before': { display: 'none' },
+                    }}
+                  >
+                    <AccordionSummary
+                      expandIcon={<ExpandMoreIcon />}
+                      sx={{
+                        bgcolor: group.hasPlacement
+                          ? 'rgba(220, 38, 38, 0.06)'
+                          : 'background.paper',
+                        '& .MuiAccordionSummary-content': {
+                          alignItems: 'center',
+                          gap: 2,
+                        },
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        spacing={2}
+                        alignItems="center"
+                        sx={{ width: '100%' }}
+                      >
+                        <Stack
+                          direction="row"
+                          spacing={1.5}
+                          alignItems="center"
+                          sx={{ flexGrow: 1 }}
+                        >
+                          <Badge
+                            color="secondary"
+                            badgeContent={group.unreadCount}
+                            showZero
+                          >
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                              {group.provider}
+                            </Typography>
+                          </Badge>
+                          {group.hasPlacement && (
+                            <Stack
+                              direction="row"
+                              spacing={0.5}
+                              alignItems="center"
+                            >
+                              <PriorityHighIcon color="error" fontSize="small" />
+                              <Typography
+                                variant="caption"
+                                sx={{ fontWeight: 600, color: 'error.main' }}
+                              >
+                                High Priority
+                              </Typography>
+                            </Stack>
+                          )}
+                        </Stack>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                            handleMarkGroupRead(group.provider)
+                          }}
+                        >
+                          Mark group as read
+                        </Button>
+                      </Stack>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ pt: 0 }}>
+                      <List disablePadding>
+                        {group.items.map((notification) => (
+                          <ListItem
+                            key={notification.id}
+                            divider
+                            alignItems="flex-start"
+                            secondaryAction={
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleMarkRead(notification.id)}
+                                disabled={notification.isRead}
+                              >
+                                Mark as read
+                              </Button>
+                            }
+                            sx={{ py: 1.5 }}
+                          >
+                            <ListItemText
+                              primary={
+                                <Typography
+                                  variant="subtitle2"
+                                  sx={{
+                                    fontWeight: notification.isRead ? 500 : 700,
+                                  }}
+                                >
+                                  {notification.message}
+                                </Typography>
+                              }
+                              secondary={
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  alignItems="center"
+                                  sx={{ mt: 0.5, flexWrap: 'wrap' }}
+                                >
+                                  <Chip
+                                    label={notification.type}
+                                    color={
+                                      TYPE_COLORS[notification.type] || 'default'
+                                    }
+                                    size="small"
+                                  />
+                                  {!notification.isRead && (
+                                    <Chip label="Unread" color="primary" size="small" />
+                                  )}
+                                  <Typography variant="caption" color="text.secondary">
+                                    {formatTimestamp(notification.timestamp)}
+                                  </Typography>
+                                </Stack>
+                              }
+                            />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </AccordionDetails>
+                  </Accordion>
+                ))}
+              </Stack>
             ) : (
               <Paper
                 variant="outlined"
