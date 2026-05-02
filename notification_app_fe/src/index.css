@@ -1,40 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
-
-:root {
-  --app-bg: #f4f7fb;
-  --hero-start: #e7f0ff;
-  --hero-end: #f9fbff;
-  --ink: #0f172a;
-  --muted: #5b6b82;
-  --brand: #1a5ed6;
-  --card-border: #e2e8f0;
-  --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
-  color: var(--ink);
-  background-color: var(--app-bg);
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Source+Sans+3:wght@400;500;600;700&display=swap');
 
 * {
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
-  background-color: var(--app-bg);
-}
-
-#root {
-  min-height: 100vh;
-}
-
-a {
-  color: var(--brand);
-}
-
-p {
-  margin-bottom: 0;
 }

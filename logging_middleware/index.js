@@ -1,12 +1,29 @@
 const logStore = []
 
-const Log = (payload = {}) => {
+const normalizeLogArgs = (source, level, category, message) => {
+  if (typeof source === 'object' && source !== null) {
+    return {
+      source: source.source || 'frontend',
+      level: source.level || 'info',
+      category: source.category || 'app',
+      message: source.message || 'Log entry',
+    }
+  }
+
+  return {
+    source: source || 'frontend',
+    level: level || 'info',
+    category: category || 'app',
+    message: message || 'Log entry',
+  }
+}
+
+const Log = (source, level, category, message) => {
+  const normalized = normalizeLogArgs(source, level, category, message)
   const entry = {
     id: `${Date.now()}-${logStore.length + 1}`,
     timestamp: new Date().toISOString(),
-    level: payload.level || 'info',
-    message: payload.message || 'Log entry',
-    context: payload.context || null,
+    ...normalized,
   }
 
   logStore.push(entry)

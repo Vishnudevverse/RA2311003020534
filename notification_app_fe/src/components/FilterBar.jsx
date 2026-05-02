@@ -1,21 +1,23 @@
+import { Tab, Tabs } from '@mui/material'
+
 const FILTERS = ['All', 'Placement', 'Result', 'Event']
 
-const FilterBar = ({ activeFilter, onChange }) => {
+const FilterBar = ({ value, onChange }) => {
   return (
-    <div className="btn-group filter-bar" role="group" aria-label="Filter">
+    <Tabs
+      value={value}
+      onChange={(_event, nextValue) => onChange(nextValue)}
+      variant="scrollable"
+      allowScrollButtonsMobile
+      textColor="primary"
+      indicatorColor="primary"
+      aria-label="Notification filters"
+      sx={{ minHeight: 44 }}
+    >
       {FILTERS.map((filter) => (
-        <button
-          key={filter}
-          type="button"
-          className={`btn btn-sm ${
-            activeFilter === filter ? 'btn-primary' : 'btn-outline-primary'
-          }`}
-          onClick={() => onChange(filter)}
-        >
-          {filter}
-        </button>
+        <Tab key={filter} value={filter} label={filter} sx={{ minHeight: 44 }} />
       ))}
-    </div>
+    </Tabs>
   )
 }
 

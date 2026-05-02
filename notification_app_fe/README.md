@@ -1,4 +1,4 @@
-# Campus Notifications Platform (Frontend)
+# Campus Connect (Frontend)
 
 ## Setup
 
@@ -9,6 +9,7 @@ npm run dev
 
 ## Notes
 
-- UI uses Bootstrap with lightweight custom styling.
-- Mock notifications live in `src/data/mockData.json`.
+- UI uses Material UI (MUI).
+- Auth context seeds a mock token and user into local storage on load.
+- Real-time notifications are simulated in `src/services/notificationSim.js`.
 - Logging is handled by the reusable middleware package in `../logging_middleware`.

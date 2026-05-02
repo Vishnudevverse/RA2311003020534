@@ -1,17 +1,17 @@
-# Campus Notifications Platform - System Design
+# Campus Connect - System Design
 
 ## Overview
-The system is designed to surface time-sensitive campus updates while prioritizing the highest-impact notifications for students. The solution is split into three parts:
+The system surfaces time-sensitive campus updates while prioritizing the highest-impact notifications for students. The solution is split into three parts:
 
-- Frontend: Vite + React application in `notification_app_fe/`.
+- Frontend: Vite + React + Material UI application in `notification_app_fe/`.
 - Logging middleware: Reusable log utility in `logging_middleware/`.
 - Backend stub: Placeholder services in `notification_app_be/`.
 
 ## Data Flow
-1. Frontend requests notifications using a mock service layer.
-2. Service attaches a static Bearer token header to simulate authenticated requests.
-3. Mock data is returned locally and stored in React state.
-4. The Log middleware records system events (load, filter change, mark as read).
+1. Auth context seeds a mock token and user profile into local storage.
+2. Initial notifications are loaded from the simulation service.
+3. A randomized timer uses `setInterval` to inject new notifications every 15-30 seconds.
+4. Each new item is added to state as unread and logged through the middleware.
 5. The UI renders the data in two modes: Dashboard and Priority Inbox.
 
 ## Priority Inbox Logic
@@ -32,15 +32,15 @@ The priority algorithm sorts unread notifications by:
 
 ## Logging Strategy
 The logging middleware keeps an in-memory array of structured entries:
-- `id`, `timestamp`, `level`, `message`, `context`
+- `id`, `timestamp`, `source`, `level`, `category`, `message`
 
 The UI Developer Console reads the log store and renders the latest entries in a table.
 
 ## Mock Authentication
-The service layer provides an `Authorization: Bearer campus-static-token` header for every request. This demonstrates readiness for an authenticated backend without real credentials.
+`AuthContext` stores a `mockToken` and `userData` in local storage on load to simulate an authenticated session.
 
 ## Extensibility
-- Replace the mock service with real API calls.
+- Replace the simulation service with real API calls or WebSocket feeds.
 - Persist read state to the backend.
 - Expand filters or add search by keyword.
 - Stream logs to a remote observability service when available.

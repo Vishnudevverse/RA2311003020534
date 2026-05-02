@@ -1,59 +1,84 @@
+import {
+  Box,
+  Button,
+  Divider,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material'
+import { formatTimestamp } from '../utils/notificationUtils'
+
 const DeveloperConsole = ({ logs, onClear }) => {
   return (
-    <section className="developer-console">
-      <div className="card shadow-sm">
-        <div className="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-          <div>
-            <h3 className="h6 mb-1">Developer Console</h3>
-            <p className="small text-muted mb-0">
-              Captured logs from the middleware.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="btn btn-sm btn-outline-secondary"
+    <Box sx={{ mt: 5 }}>
+      <Paper variant="outlined" sx={{ borderRadius: 3, overflow: 'hidden' }}>
+        <Stack
+          direction={{ xs: 'column', md: 'row' }}
+          alignItems={{ xs: 'flex-start', md: 'center' }}
+          justifyContent="space-between"
+          spacing={2}
+          sx={{ px: 3, py: 2 }}
+        >
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Developer Console
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Captured middleware logs for real-time actions.
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            size="small"
             onClick={onClear}
             disabled={!logs.length}
           >
             Clear logs
-          </button>
-        </div>
-        <div className="card-body p-0">
-          {logs.length ? (
-            <div className="table-responsive">
-              <table className="table table-sm table-striped mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th scope="col">Time</th>
-                    <th scope="col">Level</th>
-                    <th scope="col">Message</th>
-                    <th scope="col">Context</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {logs.map((entry) => (
-                    <tr key={entry.id}>
-                      <td className="text-muted small">{entry.timestamp}</td>
-                      <td className="text-muted small">{entry.level}</td>
-                      <td>{entry.message}</td>
-                      <td>
-                        <span className="log-context">
-                          {entry.context ? JSON.stringify(entry.context) : '-'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="small text-muted px-3 py-3 mb-0">
-              No logs yet. Activity will appear here as actions are taken.
-            </p>
-          )}
-        </div>
-      </div>
-    </section>
+          </Button>
+        </Stack>
+        <Divider />
+        {logs.length ? (
+          <Box sx={{ overflowX: 'auto' }}>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Time</TableCell>
+                  <TableCell>Source</TableCell>
+                  <TableCell>Level</TableCell>
+                  <TableCell>Category</TableCell>
+                  <TableCell>Message</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {logs.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell sx={{ color: 'text.secondary' }}>
+                      {formatTimestamp(entry.timestamp)}
+                    </TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{entry.source}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{entry.level}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>
+                      {entry.category}
+                    </TableCell>
+                    <TableCell>{entry.message}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        ) : (
+          <Typography variant="body2" color="text.secondary" sx={{ p: 3 }}>
+            No logs yet. Activity will appear here as notifications arrive or
+            change state.
+          </Typography>
+        )}
+      </Paper>
+    </Box>
   )
 }
 

@@ -1,45 +1,57 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  AppBar,
+  Badge,
+  Box,
+  Chip,
+  Container,
+  Divider,
+  Grid,
+  Paper,
+  Stack,
+  Tab,
+  Tabs,
+  Toolbar,
+  Typography,
+} from '@mui/material'
+import DashboardIcon from '@mui/icons-material/Dashboard'
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
+import PriorityHighIcon from '@mui/icons-material/PriorityHigh'
 import { Log, getLogs, clearLogs } from 'logging-middleware'
 import FilterBar from './components/FilterBar'
 import NotificationCard from './components/NotificationCard'
 import DeveloperConsole from './components/DeveloperConsole'
-import { fetchNotifications, getAuthHeaders } from './services/notificationService'
 import { getTopNotifications } from './utils/notificationUtils'
-import './App.css'
+import {
+  getInitialNotifications,
+  startNotificationSimulation,
+} from './services/notificationSim'
+import { useAuth } from './context/AuthContext'
 
 const TOP_COUNT = 5
 
 function App() {
   const [view, setView] = useState('dashboard')
   const [filter, setFilter] = useState('All')
-  const [notifications, setNotifications] = useState([])
+  const [notifications, setNotifications] = useState(() =>
+    getInitialNotifications(),
+  )
   const [logs, setLogs] = useState([])
+  const { user, token } = useAuth()
 
   const syncLogs = useCallback(() => {
     setLogs(getLogs())
   }, [])
 
-  const addLog = useCallback(
-    (payload) => {
-      Log(payload)
-      syncLogs()
-    },
-    [syncLogs],
-  )
-
   useEffect(() => {
-    const loadNotifications = async () => {
-      const data = await fetchNotifications()
-      setNotifications(data)
-      addLog({
-        level: 'info',
-        message: 'Notifications loaded',
-        context: { count: data.length, auth: getAuthHeaders() },
-      })
-    }
+    const stopSimulation = startNotificationSimulation((notification) => {
+      setNotifications((prev) => [notification, ...prev])
+      Log('frontend', 'info', 'api', `New notification received: ${notification.id}`)
+      syncLogs()
+    })
 
-    loadNotifications()
-  }, [addLog])
+    return stopSimulation
+  }, [syncLogs])
 
   const unreadCount = useMemo(
     () => notifications.filter((item) => !item.isRead).length,
@@ -56,37 +68,33 @@ function App() {
     return notifications.filter((item) => item.type === filter)
   }, [notifications, filter])
 
-  const handleViewChange = (nextView) => {
-    setView(nextView)
-    addLog({
-      level: 'info',
-      message: 'View changed',
-      context: { view: nextView },
-    })
+  const handleViewChange = (_event, nextView) => {
+    if (nextView) {
+      setView(nextView)
+    }
   }
 
   const handleFilterChange = (nextFilter) => {
     setFilter(nextFilter)
-    addLog({
-      level: 'info',
-      message: 'Filter updated',
-      context: { filter: nextFilter },
-    })
   }
 
   const handleMarkRead = (id) => {
-    const target = notifications.find((item) => item.id === id)
-    if (!target || target.isRead) return
+    let didUpdate = false
 
-    setNotifications((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, isRead: true } : item)),
-    )
+    setNotifications((prev) => {
+      const target = prev.find((item) => item.id === id)
+      if (!target || target.isRead) return prev
 
-    addLog({
-      level: 'info',
-      message: 'Notification marked as read',
-      context: { id },
+      didUpdate = true
+      return prev.map((item) =>
+        item.id === id ? { ...item, isRead: true } : item,
+      )
     })
+
+    if (didUpdate) {
+      Log('frontend', 'info', 'user', `Marked as read: ${id}`)
+      syncLogs()
+    }
   }
 
   const handleClearLogs = () => {
@@ -94,103 +102,173 @@ function App() {
     syncLogs()
   }
 
-  const authReady = getAuthHeaders().Authorization
+  const tokenPreview =
+    token && token.length > 12
+      ? `${token.slice(0, 10)}...${token.slice(-4)}`
+      : token
 
   return (
-    <div className="app">
-      <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top">
-        <div className="container">
-          <span className="navbar-brand d-flex align-items-center gap-2">
-            <img
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <AppBar position="sticky" color="inherit" elevation={1}>
+        <Toolbar>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Box
+              component="img"
               src="/campus-logo.svg"
-              className="brand-logo"
-              width="28"
-              height="28"
-              alt="Campus Notifications logo"
+              alt="Campus Connect logo"
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: 1.5,
+                border: '1px solid',
+                borderColor: 'divider',
+                bgcolor: 'common.white',
+                p: 0.5,
+              }}
             />
-            Campus Notifications
-          </span>
-          <div className="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-            <button
-              type="button"
-              className={`nav-link btn btn-link ${
-                view === 'dashboard' ? 'active' : ''
-              }`}
-              onClick={() => handleViewChange('dashboard')}
-            >
-              Dashboard
-            </button>
-            <button
-              type="button"
-              className={`nav-link btn btn-link ${
-                view === 'priority' ? 'active' : ''
-              }`}
-              onClick={() => handleViewChange('priority')}
-            >
-              Priority Inbox
-            </button>
-          </div>
-        </div>
-      </nav>
+            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+              Campus Connect
+            </Typography>
+          </Stack>
+          <Box sx={{ flexGrow: 1 }} />
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Chip
+              icon={<NotificationsActiveIcon />}
+              label="Live simulation"
+              color="primary"
+              variant="outlined"
+              size="small"
+            />
+            <Chip
+              label={user?.name || 'Campus User'}
+              color="secondary"
+              size="small"
+            />
+          </Stack>
+        </Toolbar>
+        <Divider />
+        <Container maxWidth="lg">
+          <Tabs
+            value={view}
+            onChange={handleViewChange}
+            textColor="primary"
+            indicatorColor="primary"
+            sx={{ minHeight: 48 }}
+          >
+            <Tab
+              value="dashboard"
+              label="Dashboard"
+              icon={<DashboardIcon />}
+              iconPosition="start"
+            />
+            <Tab
+              value="priority"
+              label="Priority Inbox"
+              icon={<PriorityHighIcon />}
+              iconPosition="start"
+            />
+          </Tabs>
+        </Container>
+      </AppBar>
 
-      <header className="hero-section">
-        <div className="container">
-          <div className="row g-4 align-items-center">
-            <div className="col-lg-7">
-              <p className="eyebrow">Campus Notifications Platform</p>
-              <h1 className="hero-title">
-                Priority-aware updates for placements, results, and events.
-              </h1>
-              <p className="lead text-muted">
-                Stay aligned with the most important campus updates using a
-                weight-based inbox, recency sorting, and a transparent activity
-                log.
-              </p>
-            </div>
-            <div className="col-lg-5">
-              <div className="hero-card shadow-sm">
-                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                  <span className="badge text-bg-success">Auth ready</span>
-                  <span className="auth-text">{authReady}</span>
-                </div>
-                <div className="row g-3 mt-3">
-                  <div className="col-4">
-                    <div className="stat-card">
-                      <p className="stat-label">Total</p>
-                      <p className="stat-value">{notifications.length}</p>
-                    </div>
-                  </div>
-                  <div className="col-4">
-                    <div className="stat-card">
-                      <p className="stat-label">Unread</p>
-                      <p className="stat-value">{unreadCount}</p>
-                    </div>
-                  </div>
-                  <div className="col-4">
-                    <div className="stat-card">
-                      <p className="stat-label">Priority</p>
-                      <p className="stat-value">{priorityNotifications.length}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Box
+        sx={{
+          py: { xs: 4, md: 6 },
+          background:
+            'linear-gradient(140deg, rgba(224, 240, 255, 0.9), rgba(248, 249, 255, 0.9))',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Container maxWidth="lg">
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Typography
+                variant="overline"
+                color="text.secondary"
+                sx={{ letterSpacing: 2 }}
+              >
+                Campus Connect
+              </Typography>
+              <Typography variant="h4" sx={{ fontWeight: 700, mb: 1.5 }}>
+                Real-time campus updates with weighted priority logic.
+              </Typography>
+              <Typography color="text.secondary" sx={{ maxWidth: 520 }}>
+                Notifications are ranked by Placement, Result, and Event weight,
+                then ordered by recency. New updates arrive automatically through
+                the simulated engine.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={5}>
+              <Paper elevation={0} variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip label="Authenticated" color="success" size="small" />
+                    <Typography variant="caption" color="text.secondary">
+                      Token stored in local storage
+                    </Typography>
+                  </Stack>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontFamily: '"IBM Plex Mono", monospace', color: 'text.secondary' }}
+                  >
+                    {tokenPreview}
+                  </Typography>
+                  <Stack direction="row" spacing={3}>
+                    <Badge
+                      color="primary"
+                      badgeContent={notifications.length}
+                      showZero
+                    >
+                      <Typography variant="body2" component="span">
+                        Total
+                      </Typography>
+                    </Badge>
+                    <Badge color="secondary" badgeContent={unreadCount} showZero>
+                      <Typography variant="body2" component="span">
+                        Unread
+                      </Typography>
+                    </Badge>
+                    <Badge
+                      color="info"
+                      badgeContent={priorityNotifications.length}
+                      showZero
+                    >
+                      <Typography variant="body2" component="span">
+                        Priority
+                      </Typography>
+                    </Badge>
+                  </Stack>
+                </Stack>
+              </Paper>
+            </Grid>
+          </Grid>
+        </Container>
+      </Box>
 
-      <main className="container main-content">
+      <Container maxWidth="lg" sx={{ py: 4 }}>
         {view === 'dashboard' ? (
-          <section className="content-section">
-            <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
-              <div>
-                <h2 className="section-title">Dashboard</h2>
-                <p className="text-muted mb-0">
-                  Monitor all notifications and filter by category.
-                </p>
-              </div>
-              <FilterBar activeFilter={filter} onChange={handleFilterChange} />
-            </div>
+          <Box>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              spacing={2}
+              sx={{ mb: 3 }}
+            >
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  Dashboard
+                </Typography>
+                <Typography color="text.secondary">
+                  Filter by category to review all campus activity.
+                </Typography>
+              </Box>
+              <Paper variant="outlined" sx={{ px: 1 }}>
+                <FilterBar value={filter} onChange={handleFilterChange} />
+              </Paper>
+            </Stack>
+
             {filteredNotifications.length ? (
               filteredNotifications.map((notification) => (
                 <NotificationCard
@@ -200,22 +278,34 @@ function App() {
                 />
               ))
             ) : (
-              <div className="empty-state">
-                <p className="mb-0">No notifications match this filter.</p>
-              </div>
+              <Paper
+                variant="outlined"
+                sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}
+              >
+                No notifications match this filter.
+              </Paper>
             )}
-          </section>
+          </Box>
         ) : (
-          <section className="content-section">
-            <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
-              <div>
-                <h2 className="section-title">Priority Inbox</h2>
-                <p className="text-muted mb-0">
-                  Unread items ranked by weight and recency.
-                </p>
-              </div>
-              <span className="badge text-bg-primary">Top {TOP_COUNT}</span>
-            </div>
+          <Box>
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              justifyContent="space-between"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              spacing={2}
+              sx={{ mb: 3 }}
+            >
+              <Box>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  Priority Inbox
+                </Typography>
+                <Typography color="text.secondary">
+                  Highest priority unread items based on weight and recency.
+                </Typography>
+              </Box>
+              <Chip label={`Top ${TOP_COUNT}`} color="primary" />
+            </Stack>
+
             {priorityNotifications.length ? (
               priorityNotifications.map((notification) => (
                 <NotificationCard
@@ -225,16 +315,19 @@ function App() {
                 />
               ))
             ) : (
-              <div className="empty-state">
-                <p className="mb-0">No unread notifications at the moment.</p>
-              </div>
+              <Paper
+                variant="outlined"
+                sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}
+              >
+                No unread notifications at the moment.
+              </Paper>
             )}
-          </section>
+          </Box>
         )}
 
         <DeveloperConsole logs={logs} onClear={handleClearLogs} />
-      </main>
-    </div>
+      </Container>
+    </Box>
   )
 }
 

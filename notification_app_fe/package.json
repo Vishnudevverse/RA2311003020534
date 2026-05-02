@@ -10,7 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "bootstrap": "^5.3.3",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.16.7",
+    "@mui/material": "^5.16.7",
     "logging-middleware": "file:../logging_middleware",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
