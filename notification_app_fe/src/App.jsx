@@ -14,9 +14,11 @@ import {
   Toolbar,
   Typography,
 } from '@mui/material'
-import DashboardIcon from '@mui/icons-material/Dashboard'
-import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive'
-import PriorityHighIcon from '@mui/icons-material/PriorityHigh'
+import {
+  Dashboard as DashboardIcon,
+  NotificationsActive as NotificationsActiveIcon,
+  PriorityHigh as PriorityHighIcon,
+} from '@mui/icons-material'
 import { Log, getLogs, clearLogs } from 'logging-middleware'
 import FilterBar from './components/FilterBar'
 import NotificationCard from './components/NotificationCard'
@@ -26,7 +28,7 @@ import {
   getInitialNotifications,
   startNotificationSimulation,
 } from './services/notificationSim'
-import { useAuth } from './context/AuthContext'
+import { useAuth } from './context/AuthContext.jsx'
 
 const TOP_COUNT = 5
 
